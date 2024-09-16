@@ -33,7 +33,7 @@ Ce projet est une implémentation d'un service USSD basé sur FastAPI pour gére
 1. Clonez ce repository sur votre machine locale :
 
    ```bash
-   git clone https://github.com/votre-utilisateur/perfectpay.git
+   git clone https://github.com/EmeranYoa/perfectpay.git
    cd perfectpay
    ```
 
@@ -60,12 +60,12 @@ Ce projet est une implémentation d'un service USSD basé sur FastAPI pour gére
    uvicorn main:app --reload
    ```
 
-   Cela démarre le serveur en mode développement à l'adresse [http://127.0.0.1:8080](http://127.0.0.1:8080).
+   Cela démarre le serveur en mode développement à l'adresse [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
 2. Testez l'API via Swagger en visitant :
 
    ```
-   http://127.0.0.1:8080/docs
+   http://127.0.0.1:8000/docs
    ```
 
 3. Envoyez des requêtes à l'API :
