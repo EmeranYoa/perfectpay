@@ -65,7 +65,7 @@ Ce projet est une implémentation d'un service USSD basé sur FastAPI pour gére
 2. Testez l'API via Swagger en visitant :
 
    ```
-   http://127.0.0.1:8000/docs
+   http://127.0.0.1:8000/v1/docs
    ```
 
 3. Envoyez des requêtes à l'API :
@@ -75,7 +75,7 @@ Ce projet est une implémentation d'un service USSD basé sur FastAPI pour gére
    ```json
    {
      "sessionid": "1234567890",
-     "msisdn": "237691882411",
+     "msisdn": "#237*100#",
      "message": "1"
    }
    ```
