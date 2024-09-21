@@ -12,7 +12,7 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     description="Perfect Pay API",
     contact={
-        "name": "Emeran Youa",
+        "name": "Hamed Nsangou & Emeran Youa",
         "email": "emeran.yoa@gmail.com",
     },
     docs_url="/api/v1/docs",
