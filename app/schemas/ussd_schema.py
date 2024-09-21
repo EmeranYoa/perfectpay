@@ -1,31 +1,29 @@
 from pydantic import BaseModel
-from typing import Optional
 
 class USSDRequestSchema(BaseModel):
     sessionid: str
     msisdn: str
-    message: Optional[str] = None
-    # serviceCode: Optional[str] = None
+    message: str
 
-    class Config:
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "sessionid": "1234567890",
                 "msisdn": "237691882411",
-                "message": "*123#",
-                # "serviceCode": "*123#"
+                "message": "1"
             }
         }
-
+    }
 
 class USSDResponseSchema(BaseModel):
     message: str
-    command: str  # 'CON' pour continuer la session ou 'END' pour terminer
+    command: str
 
-    class Config:
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
-                "message": "Bienvenue sur PerfectPay\n1. Inscription\n2. Transfert\n3. Retrait\n4. Consultation de solde",
+                "message": "Bienvenue sur PerfectPay\n1-Transfert\n2-Retrait\n3-Paiement services\n4-Vendre\n5-Acheter\n6-Solde\n7-Paiement\n8-Recharger",
                 "command": "CON"
             }
         }
+    }

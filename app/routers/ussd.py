@@ -1,13 +1,14 @@
 from fastapi import FastAPI, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session as Db_session
 from schemas.ussd_schema import USSDRequestSchema, USSDResponseSchema
-from schemas.client_schema import ClientCreate
+from schemas.user_schema import UserCreate, UserResponse
 from configs.database import get_db
-from models.ussd_session_model import USSDSession, get_session, create_session, update_session, delete_session
-from models.client_model import Client, get_client, create_client, increase_client_balance
+from models.session_model import Session, get_session, create_session, update_session, delete_session
+from models.user_model import User, get_user, create_user
 import random
 import json
 from fastapi import APIRouter
+from core.utils import secure_pwd, verify_pwd
 
 router = APIRouter(
     prefix="/api/v1/ussd",
@@ -16,7 +17,7 @@ router = APIRouter(
 )
 
 @router.post("", response_model=USSDResponseSchema)
-async def ussd_handler(request: USSDRequestSchema, db: Session = Depends(get_db)):
+async def ussd_handler(request: USSDRequestSchema, db: Db_session = Depends(get_db)):
     session_id = request.sessionid
     msisdn = request.msisdn
     user_input = request.message or ""
@@ -26,7 +27,7 @@ async def ussd_handler(request: USSDRequestSchema, db: Session = Depends(get_db)
     if not session:
         data = {"phone_number": msisdn}
         create_session(db, session_id, msisdn, "menu_principal", data)
-        client = get_client(db, msisdn)
+        client = get_user(db, msisdn)
 
         if client:
             return USSDResponseSchema(
@@ -51,6 +52,7 @@ async def ussd_handler(request: USSDRequestSchema, db: Session = Depends(get_db)
                 message="Veuillez entrer votre numéro de téléphone pour vous inscrire",
                 command="CON"
             )
+
         elif user_input == "1":
             # Transfert d'argent
             update_session(db, session_id, "transfert_numero", session_data)
@@ -91,10 +93,11 @@ async def ussd_handler(request: USSDRequestSchema, db: Session = Depends(get_db)
             )
 
         pin = str(random.randint(10000, 99999))
-        new_client = ClientCreate(phone_number=phone_number, pin=pin)
+        new_client = UserCreate(phone_number=phone_number, pin=secure_pwd(pin))
         create_client(db, new_client)
 
         delete_session(db, session_id)
+        
         return USSDResponseSchema(
             message=f"Inscription réussie. Votre PIN est {pin}.",
             command="END"

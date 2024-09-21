@@ -4,7 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from configs.config import settings
 from configs.database import Base, engine
-from routers import payin, credit_card, client, ussd
+from routers import auth, account, transaction, merchant, recharge, ussd
+
 
 
 app = FastAPI(
@@ -14,9 +15,9 @@ app = FastAPI(
         "name": "Emeran Youa",
         "email": "emeran.yoa@gmail.com",
     },
-    docs_url="/v1/docs",
-    redoc_url="/v1/redoc",
-    openapi_url="/v1/openapi.json",
+    docs_url="/api/v1/docs",
+    redoc_url="/api/v1/redoc",
+    openapi_url="/api/v1/openapi.json",
 )
 
 origins = ['*']
@@ -34,7 +35,10 @@ async def connect():
     Base.metadata.create_all(bind=engine)
 
 
-app.include_router(payin.router)
-app.include_router(credit_card.router)
-app.include_router(client.router)
+app.include_router(auth.router)
+app.include_router(account.router)
+app.include_router(merchant.router)
+app.include_router(transaction.router)
+app.include_router(recharge.router)
+# app.include_router(client.router)
 app.include_router(ussd.router)

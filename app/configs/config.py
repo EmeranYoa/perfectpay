@@ -1,5 +1,6 @@
 import os
 from pydantic_settings import BaseSettings
+from fastapi.security.api_key import APIKeyHeader
 
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -23,7 +24,14 @@ class Settings(BaseSettings):
 
     STRIPE_SECRET_KEY: str
 
+    SECRET_KEY: str
+    REFRESH_SECRET_KEY: str
+    JWT_ALGORITHM: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int
+    REFRESH_TOKEN_EXPIRE_MINUTES: int
     class Config:
         env_file = f"{base_dir}/.env"
 
 settings = Settings()
+
+api_key_header = APIKeyHeader(name="X-API-KEY")
