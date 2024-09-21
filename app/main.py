@@ -10,7 +10,7 @@ from routers import auth, account, transaction, merchant, recharge, ussd
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description="Perfect Pay API",
+    description="PerfectPay API",
     contact={
         "name": "Hamed Nsangou & Emeran Youa",
         "email": "emeran.yoa@gmail.com",
