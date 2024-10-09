@@ -38,7 +38,7 @@ app.add_middleware(
 async def connect():
     Base.metadata.create_all(bind=engine)
 
-    # create_fixtures(SessionLocal())
+    create_fixtures(SessionLocal())
 
 
 app.include_router(auth.router)
