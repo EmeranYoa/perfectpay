@@ -158,7 +158,7 @@ def get_current_user(current_user: User = Depends(get_current_user)):
     return current_user
 
 
-@router.post("/users", response_model=Page[UserResponse])
+@router.get("/users", response_model=Page[UserResponse])
 def get_users(
         db: Session = Depends(get_db),
         role: UserRole = Query(None, description="Filter user by role  (client, partner, merchant, admin)"),
