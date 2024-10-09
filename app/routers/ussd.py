@@ -1,14 +1,16 @@
-from fastapi import FastAPI, Depends, HTTPException
-from sqlalchemy.orm import Session as Db_session
-from schemas.ussd_schema import USSDRequestSchema, USSDResponseSchema
-from schemas.user_schema import UserCreate, UserResponse
-from configs.database import get_db
-from models.session_model import Session, get_session, create_session, update_session, delete_session
-from models.user_model import User, get_user, create_user
-import random
 import json
+import random
+
 from fastapi import APIRouter
-from core.utils import secure_pwd, verify_pwd
+from fastapi import Depends
+from sqlalchemy.orm import Session as Db_session
+
+from app.configs.database import get_db
+from app.core.utils import secure_pwd
+from app.models.session_model import get_session, create_session, update_session, delete_session
+from app.models.user_model import get_user
+from app.schemas.user_schema import UserCreate
+from app.schemas.ussd_schema import USSDRequestSchema, USSDResponseSchema
 
 router = APIRouter(
     prefix="/api/v1/ussd",

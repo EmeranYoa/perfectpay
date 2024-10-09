@@ -1,9 +1,11 @@
-from pydantic import BaseModel, EmailStr, validator
-from datetime import datetime
-from schemas.user_schema import UserCreate, UserResponse, UserUpdate
 from typing import Optional
 
-# Schéma pour un marchand
+from pydantic import BaseModel, EmailStr
+
+from app.schemas.user_schema import UserCreate, UserUpdate
+
+
+# Schéma pour un merchant
 class MerchantCreate(BaseModel):
     business_name: str
     phone_number: str

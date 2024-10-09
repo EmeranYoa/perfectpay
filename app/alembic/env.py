@@ -5,7 +5,7 @@ from sqlalchemy import pool
 
 from alembic import context
 # Importer vos modèles SQLAlchemy ici
-from configs.database import SQLALCHEMY_DATABASE_URL, Base # Importer l'URL de la base de données
+from app.configs.database import SQLALCHEMY_DATABASE_URL, Base # Importer l'URL de la base de données
 
 
 # this is the Alembic Config object, which provides

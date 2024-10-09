@@ -1,6 +1,6 @@
 import uuid
 import requests
-from configs.config import settings
+from app.configs.config import settings
 
 def paycool(amount: float, client_phone: str, customer_name = settings.PROJECT_NAME) -> dict:
     url = settings.PAYCOOL_ENPOINT

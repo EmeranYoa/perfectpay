@@ -1,14 +1,14 @@
 from datetime import datetime, timedelta
+
 from fastapi import HTTPException, Depends, status, Request
-from fastapi.security import OAuth2PasswordBearer, HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
-from configs.config import settings
-from configs.database import get_db
 
+from app.configs.config import settings
+from app.configs.database import get_db
+from app.models.user_model import User
 
-from models.user_model import User
-from core.utils import verify_pwd, secure_pwd
 
 # oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 class JWTBearer(HTTPBearer):
@@ -109,3 +109,23 @@ def get_current_user(token: str = Depends(JWTBearer()), db: Session = Depends(ge
     if user is None:
         raise credentials_exception
     return user
+
+def verify_role(user: User, allowed_roles: list):
+    if user.merchant and "merchant" in allowed_roles:
+        return True
+    if user.client and "client" in allowed_roles:
+        return True
+    if user.admin and "admin" in allowed_roles:
+        return True
+    if user.partner and "partner" in allowed_roles:
+        return True
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN, 
+        detail="Access forbidden: Insufficient role"
+    )
+
+def role_required(allowed_roles: list):
+    def role_verifier(user: User = Depends(get_current_user)):
+        verify_role(user, allowed_roles)
+        return user
+    return role_verifier

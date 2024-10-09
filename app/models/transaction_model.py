@@ -1,8 +1,9 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from configs.database import Base
-from models.user_model import get_user
+
+from app.configs.database import Base
+
 
 class Transaction(Base):
     __tablename__ = 'transactions'
@@ -19,6 +20,7 @@ class Transaction(Base):
     recipient = relationship("User", foreign_keys=[recipient_id])
 
     created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
 
     

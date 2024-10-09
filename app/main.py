@@ -2,10 +2,12 @@ from typing import Union
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from configs.config import settings
-from configs.database import Base, engine
-from routers import auth, account, transaction, merchant, recharge, ussd
+from app.configs.config import settings
+from app.configs.database import Base, engine, SessionLocal
+from app.routers import auth, account, transaction, merchant, recharge, ussd
+from fastapi_pagination import add_pagination
 
+from app.models.fixtures import create_fixtures
 
 
 app = FastAPI(
@@ -19,6 +21,8 @@ app = FastAPI(
     redoc_url="/api/v1/redoc",
     openapi_url="/api/v1/openapi.json",
 )
+
+add_pagination(app)
 
 origins = ['*']
 
@@ -34,11 +38,13 @@ app.add_middleware(
 async def connect():
     Base.metadata.create_all(bind=engine)
 
+    # create_fixtures(SessionLocal())
+
+
 
 app.include_router(auth.router)
 app.include_router(account.router)
 app.include_router(merchant.router)
 app.include_router(transaction.router)
 app.include_router(recharge.router)
-# app.include_router(client.router)
 app.include_router(ussd.router)

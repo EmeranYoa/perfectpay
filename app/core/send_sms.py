@@ -1,5 +1,5 @@
 import requests
-from configs.config import settings
+from app.configs.config import settings
 
 def sendsms(to: str, message: str) -> str:
     sender = settings.SMS_SENDER

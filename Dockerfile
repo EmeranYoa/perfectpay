@@ -10,6 +10,8 @@ COPY . /perfectpay/
 
 # COPY .env /perfectpay/app/.env
 
-WORKDIR /perfectpay/app
+WORKDIR /perfectpay
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80", "--reload"]
+EXPOSE 80
+
+CMD uvicorn app.main:app --host 0.0.0.0 --port 80 --reload --log-level debug

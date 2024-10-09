@@ -9,10 +9,7 @@ class UserCreate(BaseModel):
     name: Optional[str] = None
     password: Optional[str] = None
     email: Optional[EmailStr] = None
-    merchant_id: Optional[int] = None
 
-
-    
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -25,12 +22,33 @@ class UserCreate(BaseModel):
         }
     }
 
+
+class MerchantCreate(UserCreate):
+    business_name: str
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "phone_number": "237691882411",
+                "pin": "123456",
+                "name": "John Doe",
+                "email": "john.doe@example.com",
+                "merchant_id": 1,
+                "business_name": "Mon Marché"
+            }
+        }
+    }
+
+
 # Schéma pour la réponse utilisateur
 class UserResponse(BaseModel):
     id: int
     phone_number: str
     name: Optional[str]
     email: Optional[EmailStr]
+    language: Optional[str]
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
@@ -40,8 +58,12 @@ class UserResponse(BaseModel):
                 "phone_number": "237691882411",
                 "name": "John Doe",
                 "email": "john.doe@example.com",
+                "language": "fr",
+                "created_at": "2022-01-01T00:00:00",
+                "updated_at": "2022-01-01T00:00:00"
             }
         }
+
 
 class UserUpdate(BaseModel):
     name: Optional[str]
@@ -55,6 +77,21 @@ class UserUpdate(BaseModel):
             }
         }
     }
+
+
+class UserUpdatePin(BaseModel):
+    old_pin: str
+    new_pin: str
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "old_pin": "123456",
+                "new_pin": "654321"
+            }
+        }
+    }
+
 
 # Schéma pour l'authentification
 class UserLogin(BaseModel):
@@ -71,6 +108,7 @@ class UserLogin(BaseModel):
             }
         }
     }
+
 
 # Schéma pour la réponse de l'authentification
 class UserLoginResponse(BaseModel):
@@ -95,9 +133,10 @@ class UserLoginResponse(BaseModel):
             }
         }
 
+
 class UserBalanceResponse(BaseModel):
     balance: float
-    
+
     class Config:
         from_attributes = True
         json_schema_extra = {

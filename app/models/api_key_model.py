@@ -1,8 +1,8 @@
 import secrets
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
 from sqlalchemy.orm import relationship, Session
-from configs.database import Base, get_db
-from configs.config import api_key_header
+from app.configs.database import Base, get_db
+from app.configs.config import api_key_header
 from fastapi import Depends, Security, HTTPException
 from datetime import datetime, timedelta
 
@@ -10,11 +10,11 @@ class APIKey(Base):
     __tablename__ = "api_keys"
     id = Column(Integer, primary_key=True, index=True)
     key = Column(String(255), unique=True, nullable=False)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     expiration = Column(DateTime, default=lambda: datetime.utcnow() + timedelta(days=30))
     
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     user = relationship("User", back_populates="api_keys", foreign_keys=[user_id])
 
 
