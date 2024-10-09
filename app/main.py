@@ -9,7 +9,6 @@ from fastapi_pagination import add_pagination
 
 from app.models.fixtures import create_fixtures
 
-
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description="PerfectPay API",
@@ -34,12 +33,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.on_event("startup")
 async def connect():
     Base.metadata.create_all(bind=engine)
 
     # create_fixtures(SessionLocal())
-
 
 
 app.include_router(auth.router)
