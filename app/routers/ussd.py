@@ -9,6 +9,7 @@ from app.configs.database import get_db
 from app.core.utils import secure_pwd
 from app.models.session_model import get_session, create_session, update_session, delete_session
 from app.models.user_model import get_user
+from app.schemas.session_schema import SessionCreate
 from app.schemas.user_schema import UserCreate
 from app.schemas.ussd_schema import USSDRequestSchema, USSDResponseSchema
 
@@ -17,6 +18,7 @@ router = APIRouter(
     tags=["ussd"],
     responses={404: {"description": "Not found"}},
 )
+
 
 @router.post("", response_model=USSDResponseSchema)
 async def ussd_handler(request: USSDRequestSchema, db: Db_session = Depends(get_db)):
@@ -28,19 +30,19 @@ async def ussd_handler(request: USSDRequestSchema, db: Db_session = Depends(get_
 
     if not session:
         data = {"phone_number": msisdn}
-        create_session(db, session_id, msisdn, "menu_principal", data)
+        session_data = SessionCreate(session_id=session_id, user_id=1, state="menu_principal", data=data)
+        create_session(db, session_data)
         client = get_user(db, msisdn)
 
         if client:
             return USSDResponseSchema(
                 message="Bienvenue sur PerfectPay\n1-Transfert\n2-Retrait\n3-Paiement services\n4-Vendre\n5-Acheter\n6-Solde\n7-Paiement\n8-Recharger",
-                command="CON"
+                command="1"
             )
         return USSDResponseSchema(
             message="Bienvenue sur PerfectPay\n0-Inscription",
-            command="CON"
+            command="1"
         )
-        
 
     current_state = session.state
     session_data = json.loads(session.data)
@@ -52,7 +54,7 @@ async def ussd_handler(request: USSDRequestSchema, db: Db_session = Depends(get_
             update_session(db, session_id, "inscription", session_data)
             return USSDResponseSchema(
                 message="Veuillez entrer votre numéro de téléphone pour vous inscrire",
-                command="CON"
+                command="1"
             )
 
         elif user_input == "1":
@@ -60,14 +62,14 @@ async def ussd_handler(request: USSDRequestSchema, db: Db_session = Depends(get_
             update_session(db, session_id, "transfert_numero", session_data)
             return USSDResponseSchema(
                 message="Entrez le numéro du bénéficiaire",
-                command="CON"
+                command="1"
             )
         elif user_input == "2":
             # Retrait
             update_session(db, session_id, "retrait_numero", session_data)
             return USSDResponseSchema(
                 message="Entrez le numéro du marchand",
-                command="CON"
+                command="1"
             )
 
         # Autres options du menu principal
@@ -76,12 +78,12 @@ async def ussd_handler(request: USSDRequestSchema, db: Db_session = Depends(get_
             update_session(db, session_id, "solde_pin", session_data)
             return USSDResponseSchema(
                 message="Entrez votre code PIN pour consulter votre solde",
-                command="CON"
+                command="1"
             )
         else:
             return USSDResponseSchema(
                 message="Option invalide, réessayez.\n1. Inscription\n2. Transfert\n3. Retrait\n4. Consultation de solde",
-                command="CON"
+                command="1"
             )
 
     elif current_state == "inscription":
@@ -91,7 +93,7 @@ async def ussd_handler(request: USSDRequestSchema, db: Db_session = Depends(get_
         if client:
             return USSDResponseSchema(
                 message=f"Le numéro {phone_number} est déjà enregistré.",
-                command="END"
+                command="0"
             )
 
         pin = str(random.randint(10000, 99999))
@@ -99,10 +101,10 @@ async def ussd_handler(request: USSDRequestSchema, db: Db_session = Depends(get_
         create_client(db, new_client)
 
         delete_session(db, session_id)
-        
+
         return USSDResponseSchema(
             message=f"Inscription réussie. Votre PIN est {pin}.",
-            command="END"
+            command="0"
         )
 
     elif current_state == "transfert_numero":
@@ -111,7 +113,7 @@ async def ussd_handler(request: USSDRequestSchema, db: Db_session = Depends(get_
         update_session(db, session_id, "transfert_montant", session_data)
         return USSDResponseSchema(
             message="Entrez le montant à transférer",
-            command="CON"
+            command="1"
         )
 
     elif current_state == "transfert_montant":
@@ -121,12 +123,12 @@ async def ussd_handler(request: USSDRequestSchema, db: Db_session = Depends(get_
             update_session(db, session_id, "transfert_pin", session_data)
             return USSDResponseSchema(
                 message="Entrez votre code PIN pour confirmer le transfert",
-                command="CON"
+                command="1"
             )
         except ValueError:
             return USSDResponseSchema(
                 message="Montant invalide. Veuillez entrer un montant valide.",
-                command="CON"
+                command="1"
             )
 
     elif current_state == "transfert_pin":
@@ -140,14 +142,14 @@ async def ussd_handler(request: USSDRequestSchema, db: Db_session = Depends(get_
             delete_session(db, session_id)
             return USSDResponseSchema(
                 message="Code PIN incorrect. Session terminée.",
-                command="END"
+                command="0"
             )
 
         if client.solde < montant:
             delete_session(db, session_id)
             return USSDResponseSchema(
                 message="Solde insuffisant. Session terminée.",
-                command="END"
+                command="0"
             )
 
         # Vérification du bénéficiaire
@@ -156,7 +158,7 @@ async def ussd_handler(request: USSDRequestSchema, db: Db_session = Depends(get_
             delete_session(db, session_id)
             return USSDResponseSchema(
                 message="Numéro du bénéficiaire invalide. Session terminée.",
-                command="END"
+                command="0"
             )
 
         client.solde -= montant
@@ -166,11 +168,11 @@ async def ussd_handler(request: USSDRequestSchema, db: Db_session = Depends(get_
         delete_session(db, session_id)
         return USSDResponseSchema(
             message=f"Transfert de {montant} FCFA à {beneficiary}. Merci d'utiliser PerfectPay.",
-            command="END"
+            command="0"
         )
 
     delete_session(db, session_id)
     return USSDResponseSchema(
         message="Une erreur est survenue. Session terminée.",
-        command="END"
+        command="0"
     )

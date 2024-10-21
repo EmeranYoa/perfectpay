@@ -31,7 +31,7 @@ class UserRole(str, Enum):
 @router.post("/register/partner", response_model=UserResponse)
 async def register_partner(user: UserCreate, db: Session = Depends(get_db)):
     # check if user exists with the same phone number or email
-    existing_user = db.query(User).filter(or_(User.phone_number == user.phone_number, User.email == user.email)).first()
+    existing_user = db.query(User).filter(User.phone_number == user.phone_number).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Phone number or email already registered")
 
@@ -61,7 +61,7 @@ async def register_partner(user: UserCreate, db: Session = Depends(get_db)):
 async def register_client(user: UserCreate, db: Session = Depends(get_db),
                           partner=Depends(role_required(['partner', 'admin']))):
     # check if user exists
-    existing_user = db.query(User).filter(or_(User.phone_number == user.phone_number, User.email == user.email)).first()
+    existing_user = db.query(User).filter(User.phone_number == user.phone_number).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Phone number or email already registered")
 
@@ -88,7 +88,7 @@ async def register_client(user: UserCreate, db: Session = Depends(get_db),
 async def register_merchant(user: MerchantCreate, db: Session = Depends(get_db),
                             partner=Depends(role_required(['partner', 'admin']))):
     # check if user exists
-    existing_user = db.query(User).filter(or_(User.phone_number == user.phone_number, User.email == user.email)).first()
+    existing_user = db.query(User).filter(User.phone_number == user.phone_number).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Phone number or email  already registered")
 

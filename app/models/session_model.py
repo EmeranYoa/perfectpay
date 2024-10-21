@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta, datetime
 
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, Text
 from sqlalchemy.orm import relationship, Session as Db_session
@@ -31,7 +32,7 @@ def create_session(db: Db_session, session: SessionCreate):
         user_id=session.user_id,
         state=session.state,
         data=json.dumps(session.data),
-        expiration=func.now() + timedelta(minutes=1)  # Session expires in 1 minutes
+        expiration=datetime.now() + timedelta(minutes=1)  # Session expires in 1 minutes
     )
     db.add(db_session)
     db.commit()
