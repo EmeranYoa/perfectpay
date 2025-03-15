@@ -12,7 +12,8 @@ class Transaction(Base):
     fees = Column(Float, nullable=False, default=0.0)
     transaction_type = Column(String(20), nullable=False)  # e.g., 'transfer', 'payment'
     status = Column(String(20), default="pending")
-    
+    currency = Column(String(3), nullable=False)
+
     user_id = Column(Integer, ForeignKey('users.id'))
     user = relationship("User", back_populates="transactions", foreign_keys=[user_id])
 
@@ -21,17 +22,6 @@ class Transaction(Base):
 
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
-
-
     
-# def create_transaction(db: Session, operation: OperationCreate):
-#     client = get_user(db, operation.from_phone)
-#     db_operation = Operation(client_id=client.id, target_phone=operation.from_phone,  amount=operation.amount, type=operation.type, status=operation.status)
-#     db.add(db_operation)
-#     db.commit()
-#     db.refresh(db_operation)
-#     return db_operation
-
-# def get_user_transactions(db: Session, phone_number: str):
-#     client = get_user(db, phone_number)
-#     return db.query(Operation).filter(Operation.client_id == client.id).all()
+    def __repr__(self):
+        return f"<Transaction(id={self.id}, amount={self.amount}, transaction_type={self.transaction_type}, status={self.status}, currency={self.currency}, user_id={self.user_id}, recipient_id={self.recipient_id}, created_at={self.created_at}, updated_at={self.updated_at})>"

@@ -4,7 +4,7 @@ WORKDIR /perfectpay
 
 COPY ./requirements.txt /perfectpay/requirements.txt
 
-RUN pip install --no-cache-dir --upgrade -r /perfectpay/requirements.txt
+RUN pip install -r /perfectpay/requirements.txt
 
 COPY . /perfectpay/
 

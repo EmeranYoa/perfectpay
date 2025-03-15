@@ -177,3 +177,6 @@ pyrightconfig.json
 
 app/.env
 docker-compose.yml
+app/static/*
+app/resources/*
+.idea

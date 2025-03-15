@@ -1,18 +1,21 @@
 from enum import Enum
 
-from fastapi import Depends, HTTPException, APIRouter, Query, status
+from fastapi import Depends, HTTPException, APIRouter, Query, status, Form, File, UploadFile
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import select, or_
 
+from typing import  Optional
+
 from app.configs.config import settings
 from app.configs.database import get_db
+from app.core.upload_file import upload_file
 from app.core.oauth import create_access_token, get_current_user, create_refresh_token, refresh_token, role_required
 from app.core.send_sms import sendsms
 from app.core.utils import generate_pin_code, secure_pwd, verify_pwd, generate_merchant_code
 from app.models.roles_model import Merchant
 from app.models.session_model import Session
-from app.models.user_model import User, create_user, create_user_partner, create_merchant_user
+from app.models.user_model import User, create_user, create_user_partner, create_merchant_user, generate_username
 from app.schemas.user_schema import UserCreate, UserResponse, UserLogin, UserLoginResponse, MerchantCreate
 
 router = APIRouter(
@@ -45,6 +48,8 @@ async def register_partner(user: UserCreate, db: Session = Depends(get_db)):
 
     if user.password:
         user.password = secure_pwd(user.password)
+    
+    user.username = generate_username(db, user.first_name, user.last_name)
 
     new_user = create_user_partner(db, user, secure_pwd(partner_code))
 
@@ -58,8 +63,13 @@ async def register_partner(user: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/register/client", response_model=UserResponse)
-async def register_client(user: UserCreate, db: Session = Depends(get_db),
-                          partner=Depends(role_required(['partner', 'admin']))):
+async def register_client(
+        user: UserCreate = Depends(UserCreate.as_form),
+        avatar: Optional[UploadFile] = File(None),
+        address_proof: Optional[UploadFile] = File(None),
+        id_document: Optional[UploadFile] = File(None),
+        db: Session = Depends(get_db)
+    ):
     # check if user exists
     existing_user = db.query(User).filter(User.phone_number == user.phone_number).first()
     if existing_user:
@@ -68,13 +78,24 @@ async def register_client(user: UserCreate, db: Session = Depends(get_db),
     if not user.pin:
         user.pin = generate_pin_code()
 
+    print("**********GENERATED PIN**********", user.pin)
+
     pin = user.pin
     user.pin = secure_pwd(pin)
 
     if user.password:
         user.password = secure_pwd(user.password)
+    user.username = generate_username(db, user.first_name, user.last_name)
 
-    new_user = create_user(db, user, partner.id)
+    avatar_path = upload_file(avatar) if avatar else None
+    address_proof_path = upload_file(address_proof) if address_proof else None
+    id_document_path = upload_file(id_document) if id_document else None
+
+    user.address_proof = address_proof_path
+    user.avatar = avatar_path
+    user.id_document = id_document_path
+
+    new_user = create_user(db, user)
 
     # Envoyer un msg de bienvenue avec le code PIN par SMS
     response = sendsms(user.phone_number, f"Bienvenue sur {settings.PROJECT_NAME}! Votre code PIN est : {pin}")
@@ -99,16 +120,22 @@ async def register_merchant(user: MerchantCreate, db: Session = Depends(get_db),
 
     merchant_code = generate_merchant_code()
 
+    print("**********GENERATED MERCHANT CODE**********", merchant_code)
+
     if not user.pin:
         user.pin = generate_pin_code()
+
+    
+    print("**********GENERATED PIN**********", user.pin)
 
     pin = user.pin
     user.pin = secure_pwd(pin)
 
     if user.password:
         user.password = secure_pwd(user.password)
-
-    new_user = create_merchant_user(db, user, merchant_code, partner.id)
+        
+    user.username = generate_username(db, user.first_name, user.last_name)
+    new_user = create_merchant_user(db, user, merchant_code)
 
     # send welcome SMS with merchant code
     response = sendsms(user.phone_number,

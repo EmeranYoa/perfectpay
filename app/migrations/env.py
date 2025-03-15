@@ -2,18 +2,20 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
+from app.configs.database import metadata
+
+# import models
+from app.models.user_model import User, Wallet, CurrencyRate
+from app.models.roles_model import Merchant, Client, Admin, Partner
+from app.models.session_model import Session
+from app.models.tarif_model import Tariff
+from app.models.transaction_model import Transaction
 
 from alembic import context
-# Importer vos modèles SQLAlchemy ici
-from app.configs.database import SQLALCHEMY_DATABASE_URL, Base # Importer l'URL de la base de données
-
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-
-# Cette ligne remplace l'URL de la base de données directement dans le fichier alembic.ini
-config.set_main_option("sqlalchemy.url", SQLALCHEMY_DATABASE_URL)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -24,7 +26,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = Base.metadata
+target_metadata = metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
