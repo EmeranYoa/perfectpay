@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.services.cybersource.tokenization import *
 import logging
 # Configuration du logger
 logging.basicConfig(level=logging.INFO)

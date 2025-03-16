@@ -91,7 +91,7 @@ class User(Base):
     client = relationship("Client", back_populates="owner", foreign_keys="[Client.owner_id]", uselist=False)
     partner = relationship("Partner", back_populates="owner", foreign_keys="[Partner.owner_id]", uselist=False)
     admin = relationship("Admin", back_populates="owner",  foreign_keys="[Admin.owner_id]", uselist=False)
-
+    payment_cards = relationship("PaymentCard", back_populates="owner", uselist=False)
 
     # Registered entities by this user
     transactions = relationship("Transaction", back_populates="user", foreign_keys=[Transaction.user_id])
