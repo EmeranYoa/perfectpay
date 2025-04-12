@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from datetime import datetime, date
 from fastapi import Form, UploadFile
+
 class UserCreate(BaseModel):
     phone_number: str
     pin: Optional[str] = None

@@ -27,8 +27,10 @@ def get_user_balance(current_user: User = Depends(get_current_user), db:Session 
     # balance_response = balance_response.update_balance_with_conversion(db, wallet, wallet.currency)
     return wallet
 
+
 @router.put('/update', response_model=UserResponse)
 def update_user_informmation(user_update: UserUpdate, user: User = Depends(get_current_user), db:Session = Depends(get_db)):
+    
     if user_update.username:
         user.username = user_update.username
     if user_update.email:
@@ -52,8 +54,11 @@ def update_user_informmation(user_update: UserUpdate, user: User = Depends(get_c
     if user_update.language:
         user.language = user_update.language
 
+    db.add(user)
     db.commit()
     db.refresh(user)
+
+    print(user.language)
 
     return user
 
@@ -66,7 +71,7 @@ def change_user_pin(user: UserUpdatePin, current_user: User = Depends(get_curren
     current_user.pin = secure_pwd(user.new_pin)
 
 
-
+    db.add(current_user)
     db.commit()
     db.refresh(current_user)
 
@@ -82,6 +87,7 @@ def change_password(user: UserUpdatePassword, current_user: User = Depends(get_c
 
     # update password
     current_user.password = secure_pwd(user.new_password)
+    db.add(current_user)
     db.commit()
     db.refresh(current_user)
     return current_user

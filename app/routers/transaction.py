@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, select
 from app.configs.database import get_db
 from app.configs.config import settings
@@ -7,6 +7,7 @@ from app.models.transaction_model import Transaction
 from app.models.user_model import User, get_user, convert_currency
 from app.models.roles_model import Merchant, get_merchant
 from app.schemas.transaction_schema import TransferRequest, TransactionResponse, WithdrawRequest
+from app.schemas.user_schema import  UserResponse
 from app.core.oauth import get_current_user
 from app.core.utils import verify_pwd
 from app.core.send_sms import sendsms
@@ -21,87 +22,107 @@ router = APIRouter(
 )
 
 
+@router.get('/verify-recipient/{phone_number}', response_model=UserResponse)
+def transfer_verify_recipient(phone_number: str, current_user: User = Depends(get_current_user), db:Session = Depends(get_db)):
+    
+    
+    u = db.query(User).filter(User.phone_number == phone_number).first()
+
+    if not u:
+        raise HTTPException(status_code=404, detail="User not found")
+    return u
+
 @router.post("/transfer", response_model=TransactionResponse)
-def transfer_funds(transaction: TransferRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    #  check user is different from recipient
+def transfer_funds(
+    transaction: TransferRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Check user is different from recipient
     if user.phone_number == transaction.recipient_phone:
         raise HTTPException(status_code=400, detail="You cannot transfer funds to yourself")
 
-    # Verify if the PIN is correct
+    # Verify PIN
     if not verify_pwd(str(transaction.pin), user.pin):
         raise HTTPException(status_code=400, detail="Invalid PIN")
 
-    # Get recipient user
-    recipient_user = get_user(db, transaction.recipient_phone)
+    # Get recipient user with wallet loaded
+    recipient_user = (
+        db.query(User)
+        .options(joinedload(User.wallet))
+        .filter(User.phone_number == transaction.recipient_phone)
+        .first()
+    )
     if not recipient_user:
-        raise HTTPException(status_code=400, detail="Recipient user not found")
+        raise HTTPException(status_code=404, detail="Recipient user not found")
 
-    # check if transfer amount is up to 50
+    # Validate amount
     if transaction.amount < 50:
-        raise HTTPException(status_code=400, detail=f"You can only transfer up to 50 {user.wallet}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Minimum transfer amount is 50 {user.wallet.currency}"
+        )
 
-    # Check if the user has sufficient funds
+    # Check sufficient funds
     if user.wallet.balance < transaction.amount:
         raise HTTPException(status_code=400, detail="Insufficient funds")
 
     try:
+        # Load both users with relationships for the response
+        db.refresh(user)
+        db.refresh(recipient_user)
+
         sender_currency = user.wallet.currency
         recipient_currency = recipient_user.wallet.currency
-        if sender_currency != recipient_currency:
-            converted_amount = convert_currency(db, transaction.amount, sender_currency, recipient_currency)
-        else:
-            converted_amount = transaction.amount
+        
+        # Handle currency conversion if needed
+        converted_amount = (
+            convert_currency(db, transaction.amount, sender_currency, recipient_currency)
+            if sender_currency != recipient_currency
+            else transaction.amount
+        )
 
-        # Create debit transaction for the sender
+        # Create debit transaction with relationships loaded
         debit_transaction = Transaction(
             amount=transaction.amount,
             user_id=user.id,
+            user=user,  # Set relationship explicitly
             transaction_type="debit",
             recipient_id=recipient_user.id,
+            recipient=recipient_user,  # Set relationship explicitly
             status="completed",
-            currency=sender_currency 
+            currency=sender_currency,
+            created_at=datetime.utcnow()
         )
 
-        # Create credit transaction for the recipient
-        credit_transaction = Transaction(
-            amount=transaction.amount,
-            user_id=recipient_user.id,
-            recipient_id=recipient_user.id,
-            transaction_type="credit",
-            status="completed",
-            currency=recipient_currency
-        )
-
-        # Update user and recipient balances
+        # Update balances
         user.wallet.balance -= transaction.amount
         recipient_user.wallet.balance += converted_amount
 
-        # Add and commit both transactions and balance updates
+        # Add and commit
         db.add(debit_transaction)
-        db.add(credit_transaction)
+        db.commit()
 
-        db.commit()  # Commit once for all changes
-
-        # Refresh to get the updated data
-        db.refresh(user.wallet)
-        db.refresh(recipient_user.wallet)
+        # Explicitly refresh with relationships
         db.refresh(debit_transaction)
-        db.refresh(credit_transaction)
+        debit_transaction.user = user
+        debit_transaction.recipient = recipient_user
+
+        # Send notifications
+        sendsms(
+            recipient_user.phone_number,
+            f"You received {converted_amount} {recipient_currency} from {user.phone_number}. New balance: {recipient_user.wallet.balance} {recipient_currency}."
+        )
+        sendsms(
+            user.phone_number,
+            f"You sent {transaction.amount} {sender_currency} to {recipient_user.phone_number}. New balance: {user.wallet.balance} {sender_currency}."
+        )
+
+        return debit_transaction
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Transaction failed")
-
-    # Send SMS to recipient and user
-    sendsms(
-        recipient_user.phone_number,
-        f"You have received {converted_amount} {recipient_currency} from {user.phone_number}. Your new balance is {recipient_user.wallet.balance} {recipient_currency}."
-    )
-    sendsms(
-        user.phone_number,
-        f"You have sent {transaction.amount} {sender_currency} to {recipient_user.phone_number}. You have been debited {transaction.amount} {sender_currency}. Your new balance is {user.wallet.balance} {sender_currency}."
-    )
-
-    return debit_transaction
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Transaction processing failed")
 
 @router.post('/withdraw', response_model=TransactionResponse)
 def withdraw_funds(transaction: WithdrawRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -205,7 +226,10 @@ def get_transaction_history(
     if not end_date:
         end_date = datetime.now()
 
-    query = db.query(Transaction).filter(
+    query = db.query(Transaction).options(
+            joinedload(Transaction.user),
+            joinedload(Transaction.recipient)
+        ).filter(
         Transaction.created_at.between(start_date, end_date)
     )
 
@@ -223,7 +247,10 @@ def get_transaction(
         transaction_id: int,
         user: User = Depends(get_current_user),
         db: Session = Depends(get_db)):
-    transaction = db.query(Transaction).filter(transaction_id == Transaction.id, user.id == Transaction.user_id).first()
+    transaction = db.query(Transaction).options(
+            joinedload(Transaction.user),
+            joinedload(Transaction.recipient)
+        ).filter(transaction_id == Transaction.id, user.id == Transaction.user_id).first()
     if not transaction:
         raise HTTPException(status_code=404, detail="Transaction not found")
     return transaction

@@ -81,15 +81,23 @@ class PaymentRequest(BaseModel):
                 "amount": 1000
             }
         }
+class UserResponse(BaseModel):
+    id: int
+    first_name: str
+    last_name: str
+
+    class Config:
+        from_attributes = True
 
 class TransactionResponse(BaseModel):
     id: int
     amount: float
     fees: float
     status: str
-    user_id: int
+    user: UserResponse  
+    recipient: Optional[UserResponse] 
+    currency: str
     transaction_type: str
-    user_id: int
     created_at: datetime
 
     class Config:
@@ -100,7 +108,17 @@ class TransactionResponse(BaseModel):
                 "amount": 1000,
                 "fees": 10,
                 "status": "success",
-                "user_id": 1,
+                "user": {
+                    "id": 1,
+                    "first_name": "John",
+                    "last_name": "Doe"
+                },
+                "recipient": {
+                    "id": 2,
+                    "first_name": "Jane",
+                    "last_name": "Smith"
+                },
+                "currency": "USD",
                 "transaction_type": "transfer",
                 "created_at": "2023-10-10T10:00:00"
             }
